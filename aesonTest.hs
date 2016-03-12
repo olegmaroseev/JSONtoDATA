@@ -2,6 +2,9 @@
 
 import Data.Aeson
 import Data.Maybe
+import Data.HashMap.Strict as StrHash
+import Data.Text
+import Data.Generics
 
 decodedSimpJSON = fromJust $ decode $ "{\"name\":\"Oleg\",\"age\": 20 }" :: Maybe Value
 
@@ -14,3 +17,9 @@ toHashMap (Object x) = x
 -- Creating data with Haskell Template?
 
 --Cast [(String, Object)]
+
+xxx = StrHash.lookup (pack "age") $ toHashMap $ fromJust $ decodedSimpJSON
+
+--typeOf
+
+--nub Hash
