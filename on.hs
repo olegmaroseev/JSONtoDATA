@@ -6,7 +6,7 @@ import DataCreation
 --Person = Name String
 $(getDataFromJSON)
 
-dataPerson = Name "Oleg"
+dataPerson = Name {age = "Oleg"}
 
 main = print dataPerson
 

@@ -29,8 +29,8 @@ getDataFromJSON = do
                 (mkName "Person") 
                 [] 
                 [
-                        NormalC (mkName $ firstLetterToUpper $ Data.Text.unpack $Prelude.head $ getMapKeys personJSON) 
-                                [(NotStrict, ConT (mkName "String"))]
+                        RecC (mkName $ firstLetterToUpper $ Data.Text.unpack $Prelude.head $ getMapKeys personJSON) 
+                                [(mkName "age",NotStrict, ConT (mkName "String"))]
                 ] 
                 [mkName "Show"]
-        ]
+        ] 
