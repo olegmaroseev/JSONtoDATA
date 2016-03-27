@@ -2,7 +2,25 @@
 https://github.com/bos/aeson
 https://artyom.me/aeson
 
-Data.Aeson - библиотека для работы с файлами в формате JSON. Самый простой способ использования библотеки - определить DATA. Помимо простого кодирования/декодирования JSON она также позволяет удобным образом писать сериализаторы и десериализаторы для произвольных типов. Подробности вы найдете в документации по пакету.
+Data.Aeson - библиотека для работы с файлами в формате JSON. Самый простой способ использования библотеки - определить DATA. Помимо простого кодирования/декодирования JSON она также позволяет удобным образом писать сериализаторы и десериализаторы для произвольных типов. 
+
+Aeson имеют свой собственный тип для представления конвертируемого JSON файла. Этот тип называется Value и имеет 6 конструкторов:
+```haskell
+data Value
+  = Object Object
+  | Array Array
+  | String Text
+  | Number Scientific
+  | Bool Bool
+  | Null
+```
+
+Valuе представляет собой обертки над стандартными классами, поэтому с экземплярами этого типа легко работать.
+```haskell
+type Object = HashMap Text Value
+type Array = Vector Value
+```
+
 
 The most common way to use the library is to define a data type, corresponding to some JSON data you want to work with, and then write either a FromJSON instance, a to ToJSON instance, or both for that type.
 
