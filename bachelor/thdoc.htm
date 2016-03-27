@@ -1,0 +1,791 @@
+
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="Generator" content="Microsoft Word 11 (filtered)">
+<title>Template Haskell Documentation-</title>
+
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;}
+@font-face
+	{font-family:"Lucida Console";
+	panose-1:2 11 6 9 4 5 4 2 2 4;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0cm;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";}
+h1
+	{margin-top:12.0pt;
+	margin-right:0cm;
+	margin-bottom:3.0pt;
+	margin-left:0cm;
+	page-break-after:avoid;
+	font-size:16.0pt;
+	font-family:Arial;
+	font-weight:bold;}
+h2
+	{margin-top:12.0pt;
+	margin-right:0cm;
+	margin-bottom:3.0pt;
+	margin-left:0cm;
+	page-break-after:avoid;
+	font-size:14.0pt;
+	font-family:Arial;
+	font-weight:bold;
+	font-style:italic;}
+a:link, span.MsoHyperlink
+	{color:blue;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{color:purple;
+	text-decoration:underline;}
+p
+	{margin-right:0cm;
+	margin-left:0cm;
+	font-size:12.0pt;
+	font-family:"Times New Roman";}
+pre
+	{margin:0cm;
+	margin-bottom:.0001pt;
+	font-size:10.0pt;
+	font-family:"Courier New";}
+tt
+	{font-family:"Courier New";}
+span.HTML
+	{font-family:"Courier New";}
+p.Code, li.Code, div.Code
+	{margin:0cm;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Lucida Console";}
+span.CodeChar
+	{font-family:"Lucida Console";}
+@page Section1
+	{size:595.3pt 841.9pt;
+	margin:2.0cm 42.5pt 2.0cm 3.0cm;}
+div.Section1
+	{page:Section1;}
+ /* List Definitions */
+ ol
+	{margin-bottom:0cm;}
+ul
+	{margin-bottom:0cm;}
+-->
+</style>
+
+</head>
+
+<body lang="EN" link="blue" vlink="purple">
+        
+<div class="Section1">
+
+<p><span lang="EN-US">Template Haskell is a Haskell extension that supports
+compile­time meta­programming. The purpose of the system is to support the
+algorithmic construction of programs at compile­time. The ability to generate
+code at compile time allows the programmer to use programming techniques not
+available in Haskell itself, such as macro­like expansion, user directed
+optimization (such as inlining), polytypic programs, generation of supporting
+data structures and functions from existing data structures and functions. For
+example, the code</span></p>
+
+<pre><tt><span lang="EN-US">yell file line = fail ($(printf "Error in file %s line %d") file line)</span></tt></pre>
+
+<p><span lang="EN-US">may be translated by TH to</span></p>
+
+<pre><tt><span lang="EN-US">yell file line = fail ((\x1 x2 -&gt; "Error in file "++x1++" line "++show x2) file line)</span></tt></pre>
+
+<p><span lang="EN-US">As another example, the code</span></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">data T = A Int
+String | B Integer | C</span></tt></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">$(deriveShow
+''T)</span></tt></p>
+
+<p><span lang="EN-US">may be translated to</span></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">data T = A Int
+String | B Integer | C</span></tt></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">instance Show
+T</span></tt></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; show (A x1 x2)
+= "A "++show x1++" "++show x2</span></tt></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; show (B x1)&nbsp;&nbsp;&nbsp;
+= "B "++show x1</span></tt></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; show
+C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = "C"</span></tt></p>
+
+<p><span lang="EN-US">(if you are interested, you can find definitions of </span><tt><span lang="EN-US" style="font-size:10.0pt">printf </span></tt><span lang="EN-US">and </span><tt><span lang="EN-US" style="font-size:10.0pt">deriveShow </span></tt><span lang="EN-US">at
+the end of this documentation).</span></p>
+
+<p><span lang="EN-US">&nbsp;</span></p>
+
+<p><span lang="EN-US">In TH, Haskell code generated just by ordinary Haskell
+functions. In order to use TH, you must learn 3 things:</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">How Haskell code represented in TH functions</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">How quotation monad used to supply unique names</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">How TH-generated code inserted in the module</span></p>
+
+<p><span lang="EN-US">There are also several more advanced topics:</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Quotation monad</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Quotation brackets</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Reification</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Error reporting and recovery</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Debugging</span></p>
+
+<p><span lang="EN-US">I also included some examples of using TH:</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">printf</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">deriveShow</span></p>
+
+<h2><span lang="EN-US">How Haskell code represented in TH functions</span></h2>
+
+<p><span lang="EN-US">In Template Haskell, <i>ordinary algebraic data types</i> represent
+Haskell program fragments. These types modeled after Haskell language syntax
+and represents AST (abstract syntax tree) of corresponding Haskell code. There is
+an </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> type to represent Haskell expressions, </span><tt><span lang="EN-US" style="font-size:10.0pt">Pat</span></tt><span lang="EN-US"> – for patterns, </span><tt><span lang="EN-US" style="font-size:10.0pt">Lit</span></tt><span lang="EN-US"> – for literals,
+</span><tt><span lang="EN-US" style="font-size:10.0pt">Dec</span></tt><span lang="EN-US"> – for declarations, </span><tt><span lang="EN-US" style="font-size:
+10.0pt">Type</span></tt><span lang="EN-US"> – for data types and so on. You can
+see definitions of all these types in the module </span><tt><span lang="EN-US" style="font-size:10.0pt">Language.Haskell.TH.Syntax</span></tt><span lang="EN-US">. These types refer to each other according to rules of Haskell
+syntax, so using them you can construct values representing any possible
+Haskell program fragments. Just some simple examples:</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">varx = VarE (mkName
+"x") </span></tt><span lang="EN-US">represents expression </span><tt><span lang="EN-US" style="font-size:10.0pt">x</span></tt><span lang="EN-US">, i.e. simple
+variable “x”</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">patx = VarP (mkName
+"x") </span></tt><span lang="EN-US">represents pattern </span><tt><span lang="EN-US" style="font-size:10.0pt">x</span></tt><span lang="EN-US">, i.e. the
+same variable “x” used in pattern</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">str = LitE (StringL
+"str") </span></tt><span lang="EN-US">represents constant expression </span><tt><span lang="EN-US" style="font-size:10.0pt">"str"</span></tt></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><tt><span lang="EN-US" style="font-size:10.0pt;font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span></tt><tt><span lang="EN-US" style="font-size:10.0pt">tuple = TupE [varx,
+str] </span></tt><span lang="EN-US">represents tuple expression </span><tt><span lang="EN-US" style="font-size:10.0pt">(x,"str")</span></tt></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">LamE [patx] tuple </span></tt><span lang="EN-US">represents lambda form </span><tt><span lang="EN-US" style="font-size:
+10.0pt">(\x -&gt; (x,"str"))</span></tt></p>
+
+<p><span lang="EN-US">To make our life easier, all constructors of </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> type have
+names ending with “E”, of </span><tt><span lang="EN-US" style="font-size:10.0pt">Pat</span></tt><span lang="EN-US"> type – ending with “P” and so on. Function </span><tt><span lang="EN-US" style="font-size:10.0pt">mkName</span></tt><span lang="EN-US">, used
+here, creates value of type </span><tt><span lang="EN-US" style="font-size:10.0pt">Name</span></tt><span lang="EN-US"> (representing identifier) from </span><tt><span lang="EN-US" style="font-size:10.0pt">String</span></tt><span lang="EN-US"> with name of this
+identifier.</span></p>
+
+<p><span lang="EN-US">So, to generate some Haskell code, TH function must just
+create and return value of type </span><tt><span lang="EN-US" style="font-size:
+10.0pt">Exp</span></tt><span lang="EN-US">, which serve as representation for
+this chunk of code. You don’t even need to thoroughly learn </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> and other type’s
+definitions in order to know how to represent Haskell code you need – in the
+section <a href="#_Debugging">Debugging</a> I will say how you can print TH
+representation of any Haskell code chunk.</span></p>
+
+<h2><span lang="EN-US">How quotation monad used to supply unique names</span></h2>
+
+<p><span lang="EN-US">But TH functions are not pure functions returning values of
+type </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US">. Instead, they are computations executed in special monad Q (called
+“quotation monad”), which allows to automatically generate unique names for
+variables using monadic operation </span><tt><span lang="EN-US" style="font-size:
+10.0pt">newName::String-&gt;Q Name</span></tt><span lang="EN-US">. This operation
+on each call generates unique name with given prefix. This name then may be
+used as part of pattern (by using constructor </span><tt><span lang="EN-US" style="font-size:10.0pt">VarP::Name-&gt;Pat</span></tt><span lang="EN-US">) and
+expressions (via </span><tt><span lang="EN-US" style="font-size:10.0pt">VarE::Name-&gt;Exp</span></tt><span lang="EN-US">).</span></p>
+
+<p><span lang="EN-US">Let’s write simple TH example – TH function </span><tt><span lang="EN-US" style="font-size:10.0pt">tupleReplicate</span></tt><span lang="EN-US">,
+which when used as “</span><tt><span lang="EN-US" style="font-size:10.0pt">$(tupleReplicate
+n) x</span></tt><span lang="EN-US">” will return n-element tuple containing x in
+all positions (just like </span><tt><span lang="EN-US" style="font-size:10.0pt">replicate</span></tt><span lang="EN-US"> does for lists). Please draw attention that “n” is an argument of
+TH function, while “x” is an argument to anonymous function (lambda form) it
+generates! I provide the whole module containing this function definition
+(module </span><tt><span lang="EN-US" style="font-size:10.0pt">Language.Haskell.TH</span></tt><span lang="EN-US"> is an “external interface” to TH – it provides all the data types
+and functions which are used to write TH programs):</span></p>
+
+<pre><tt><span lang="EN-US">module TupleReplicate where</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">import Language.Haskell.TH</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">tupleReplicate :: Int -&gt; Q Exp</span></tt></pre><pre><tt><span lang="EN-US">tupleReplicate n = do id &lt;- newName "x"</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return $ LamE (VarP id)</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(TupE $ replicate n $ VarE id)</span></tt></pre>
+
+<p><span lang="EN-US">For example, call “</span><tt><span lang="EN-US" style="font-size:10.0pt">tupleReplicate 3<span style="font-size:12.0pt;font-family:&quot;Times New Roman&quot;">”</span></span></tt><span lang="EN-US"> returns </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> equivalent to Haskell expression “</span><tt><span lang="EN-US" style="font-size:10.0pt">(\x -&gt; (x,x,x))</span></tt><span lang="EN-US">”.</span></p>
+
+<h2><span lang="EN-US">How TH-generated code inserted in the module</span></h2>
+
+<p><i><span lang="EN-US">A splice is written </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">$x</span></i></tt><i><span lang="EN-US">, where </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">x</span></i></tt><i><span lang="EN-US"> is an
+identifier, or </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">$(...)</span></i></tt><i><span lang="EN-US">, where the "</span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">...</span></i></tt><i><span lang="EN-US">" is an
+arbitrary expression. There must be no space between the "$" and the
+identifier or parenthesis. This use of "$" overrides its meaning as
+an infix operator, just as "M.x" overrides the meaning of
+"." as an infix operator. If you want the infix operator, put spaces
+around it. </span></i></p>
+
+<p><span lang="EN-US">A splice can occur in place of</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">an expression; the spliced expression must have
+type </span><tt><span lang="EN-US" style="font-size:10.0pt">Q Exp</span></tt></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">a list of top-level declarations; the spliced
+expression must have type </span><tt><span lang="EN-US" style="font-size:10.0pt">Q
+[Dec]</span></tt><span lang="EN-US">. Declarations, generated by splice, have
+access only to identifiers, whose declarations are textually precede them
+(which is controversial to usual Haskell practice of global access to all
+declarations placed in current module)</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span style="font-family:
+Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">a type; the spliced expression must have type </span><tt><span lang="EN-US" style="font-size:10.0pt">Q Type</span></tt></p>
+
+<p><span lang="EN-US">Also you must know that</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">You must use compiler flag </span><tt><span lang="EN-US" style="font-size:10.0pt">–fth</span></tt><span lang="EN-US"> to enable
+splices syntax</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">You can only run a function at compile time if
+it is imported from another module. That is, you can't define a function in a
+module, and call it from within a splice in the same module.</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">If you are building GHC from source, you need at
+least a stage-2 bootstrap compiler to run Template Haskell. A stage-1 compiler
+will reject the TH constructs. </span></p>
+
+<p><span lang="EN-US">Example of module which uses our </span><tt><span lang="EN-US" style="font-size:10.0pt">tupleReplicate</span></tt><span lang="EN-US">
+function:</span></p>
+
+<pre><tt><span lang="EN-US">{-# OPTIONS_GHC -fth #-}</span></tt></pre><pre><tt><span lang="EN-US">module Test where</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">import TupleReplicate</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">main = do print ($(tupleReplicate 2) 1)&nbsp;&nbsp;&nbsp;&nbsp; -- prints (1,1)</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; print ($(tupleReplicate 5) "x")&nbsp;&nbsp; -- prints ("x","x","x","x","x")</span></tt></pre>
+
+<h2><span lang="EN-US">Quotation monad</span></h2>
+
+<p><i><span lang="EN-US">Because top-level TH functions must return values in Q
+monad, there are a number of helper functions, which lifts constructors of
+Exp/Lit/Pat data types into the Q monad: lamE (lifted LamE), varE, appE, varP
+and so on. Their declarations also use lifted data types: ExpQ = Q Exp, LitQ =
+Q Lit, PatQ = Q Pat... (you can find all these lifted functions and types in
+module </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">Language.Haskell.TH.Lib</span></i></tt><i><span lang="EN-US">). Using these functions allow to decrease number of cases where </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">do</span></i></tt><i><span lang="EN-US">
+statement is needed.</span></i></p>
+
+<p><i><span lang="EN-US">There is also function </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">lift</span></i></tt><i><span lang="EN-US">,
+which converts any value, which has literal representation, to value of type </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">Exp</span></i></tt><i><span lang="EN-US">
+which represents this literal. </span></i></p>
+
+<p><i><span lang="EN-US">In some rare cases you don’t need unique variable name
+to be generated; instead, you need to specify the exact name of variable which
+must be generated in output code. For these cases, there is a (pure) function </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">mkName::String-&gt;Name</span></i></tt><i><span lang="EN-US">. There is also corresponding helper function “</span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">dyn s = return (VarE (mkName s))</span></i></tt><i><span lang="EN-US">”, which returns </span></i><tt><i><span lang="EN-US" style="font-size:10.0pt">Exp</span></i></tt><i><span lang="EN-US"> representing
+variable with exact the given name.</span></i></p>
+
+<h2><span lang="EN-US">Quotation brackets</span></h2>
+
+<p><span lang="EN-US">While the </span><tt><span lang="EN-US" style="font-size:
+10.0pt">Exp</span></tt><span lang="EN-US"> can represent any Haskell expression,
+programmatic building of </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> values is not so easy work. In order to address this problem,
+Template Haskell supports <i>quotation brackets</i>, which is a way to convert
+literal Haskell code to data value representing it. There are four types of
+quotation brackets:</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">[| ... |]</span></tt><span lang="EN-US">, where the "..." is an expression; the quotation has type</span><tt><span lang="EN-US" style="font-size:10.0pt"> Q Exp</span></tt></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">[p| ... |]</span></tt><span lang="EN-US">, where the "..." is a pattern; the quotation has type</span><tt><span lang="EN-US" style="font-size:10.0pt"> Q Pat</span></tt></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">[d| ... |]</span></tt><span lang="EN-US">, where the "..." is a list of top-level declarations; the
+quotation has type</span><tt><span lang="EN-US" style="font-size:10.0pt"> Q [Dec]</span></tt></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><tt><span lang="EN-US" style="font-size:10.0pt">[t| ... |]</span></tt><span lang="EN-US">, where the "..." is a type; the quotation has type</span><tt><span lang="EN-US" style="font-size:10.0pt"> Q Type</span></tt></p>
+
+<p><span lang="EN-US">For example, </span><tt><span lang="EN-US" style="font-size:
+10.0pt">[| \_ -&gt; 0 |]</span></tt><span lang="EN-US"> will be translated to </span><tt><span lang="EN-US" style="font-size:10.0pt">(return $ LamE [WildP] (LitE (IntegerL 0)))</span></tt><span lang="EN-US">. The quotation has type </span><tt><span lang="EN-US" style="font-size:10.0pt">Q Exp</span></tt><span lang="EN-US"> (rather than just </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US">), so that
+it need to be executed in Q monad to return appropriate </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US">. This
+execution stage allows Template Haskell to replace all identifiers, introduced
+inside quotation brackets, by unique ones, generated internally with help of </span><tt><span lang="EN-US" style="font-size:10.0pt">newName</span></tt><span lang="EN-US">. For
+example, quotation </span><tt><span lang="EN-US" style="font-size:10.0pt">[| \x
+-&gt; x |] </span></tt><span lang="EN-US">will be translated to the following
+code:</span></p>
+
+<pre><tt><span lang="EN-US">(do id &lt;- newName "x"; return $ LamE [VarP id] (VarE id))</span></tt></pre>
+
+<p><span lang="EN-US">&nbsp;</span></p>
+
+<p><span lang="EN-US">Moreover, inside quotation brackets we can again use
+splices, making TH some form of macro preprocessor, where a part of code
+written literally and part of code generated programmatically. For example, the
+quotation </span><tt><span lang="EN-US" style="font-size:10.0pt">[| 1 + $(f x) |]
+</span></tt><span lang="EN-US">will execute </span><tt><span lang="EN-US" style="font-size:10.0pt">(f x)</span></tt><span lang="EN-US"> – which must have
+type </span><tt><span lang="EN-US" style="font-size:10.0pt">Q Exp</span></tt><span lang="EN-US">, translate returned </span><tt><span lang="EN-US" style="font-size:
+10.0pt">Exp</span></tt><span lang="EN-US"> value to literal Haskell code,
+substitute it instead of splice call, and then reconvert the full expression
+inside brackets into the code which builds the appropriate </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US">. Thanks to
+automatic renaming of internally used identifiers, the different quotations and
+even different invocations of the same quotation will never refer to the each
+others local variables. Consider the following definition:</span></p>
+
+<pre><tt><span lang="EN-US">summ n = summ' n [| 0 |]</span></tt></pre><pre><tt><span lang="EN-US">summ' 0 code = code</span></tt></pre><pre><tt><span lang="EN-US">summ' n code = [| \x -&gt; $(summ' (n-1) [|$code+x|] ) |]</span></tt></pre>
+
+<p><span lang="EN-US">This definition generates lambda form with n parameters
+which sums up all its arguments, for example</span><tt><span lang="EN-US" style="font-size:10.0pt"> $(summ 3) -&gt; (\x1 -&gt; \x2 -&gt; \x3 -&gt; 0+x1+x2+x3)</span></tt><span lang="EN-US">. Please draw attention that generated code uses three different
+names for lambda parameters despite the fact that they all were generated by the
+same quotation. As you can see in this fragment, depth of quotation and
+splicing brackets can be arbitrary, the only rule is that they must interchange
+– no quotations inside quotations, and no splices inside splices. </span></p>
+
+<p><i><span lang="EN-US">&nbsp;</span></i></p>
+
+<p><span lang="EN-US">The quasi­quote notation is a convenient shorthand for
+representing Haskell programs, and as such it is lexically scoped. More
+precisely: every occurrence of a variable is bound to the value that is
+lexically in scope at the occurrence site in the original source program,
+before any template expansion. This rule has 3 cases:</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Quotation brackets prevent “capturing” of local
+variables, declared in one quotation, by another (like the usual Haskell
+prevents capturing of local variables, used in closures). I already described
+how that is accomplished by automatic renaming of all locally introduced
+identifiers. Only </span><tt><span lang="EN-US" style="font-size:10.0pt">[p| ...
+|]</span></tt><span lang="EN-US"> quotation doesn’t rename variables this pattern
+introduces. Instead, TH provides function </span><tt><span lang="EN-US" style="font-size:10.0pt">genpat</span></tt><span lang="EN-US">, which generates
+unique pattern from the given one.</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Global identifiers, referred inside quotation,
+“capture” the identifiers available in the environment where this quotation is
+defined (again, like usual Haskell), so you can pass without any problems value
+of quotation to functions in other modules, which don’t have these definitions
+or even have another definitions for the same names. This rule uses internal
+GHC mechanism of references to symbols in another modules, for example quotation
+</span><tt><span lang="EN-US" style="font-size:10.0pt">[| map |]</span></tt><span lang="EN-US"> may be translated to reference to symbol “</span><tt><span lang="EN-US" style="font-size:10.0pt">Data.List.map</span></tt><span lang="EN-US">”
+or “</span><tt><span lang="EN-US" style="font-size:10.0pt">++</span></tt><span lang="EN-US">” operation, used in quotation, may be translated to reference to “</span><tt><span lang="EN-US" style="font-size:10.0pt">GHC.Base.++”.</span></tt><span lang="EN-US"> If
+you need to use identifiers, available at place of splicing call, use the </span><tt><span lang="EN-US" style="font-size:10.0pt">$(dyn "str")</span></tt><span lang="EN-US"> form.</span></p>
+
+<p style="margin-left:36.0pt;text-indent:-18.0pt"><span lang="EN-US" style="font-family:Symbol">·<span style="font:7.0pt &quot;Times New Roman&quot;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span><span lang="EN-US">Also inside quotation brackets you can use local
+variables of currently executed functions. These compile-time variables are
+run-time constants, so on translating brackets contents TH just substitute
+current values of these variables as literals. So, in this case </span><tt><span lang="EN-US" style="font-size:10.0pt">[|... x ...|]</span></tt><span lang="EN-US">
+is converted to </span><tt><span lang="EN-US" style="font-size:10.0pt">[| ... $(lift
+x) ... |]</span></tt><span lang="EN-US">.</span></p>
+
+<p><span lang="EN-US">&nbsp;</span></p>
+
+<p><span lang="EN-US">Splicing and quoting is opposite operations – one
+translates </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> to Haskell code, another – Haskell code to </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US">, so their
+co-usage is disappear –</span><tt><span lang="EN-US" style="font-size:10.0pt"> $([|
+... |])</span></tt><span lang="EN-US"> is equivalent to </span><tt><span lang="EN-US" style="font-size:10.0pt">(...)</span></tt><span lang="EN-US">, and so </span><tt><span lang="EN-US" style="font-size:10.0pt">[| $(...) |]</span></tt><span lang="EN-US">.
+This has inimitable value for development of TH programs – in many cases we can
+think entirely in terms of Haskell code generated, and don’t bother about </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> values it
+internally uses. </span></p>
+
+<p><span lang="EN-US">For example, consider the execution of splice </span><tt><span lang="EN-US" style="font-size:10.0pt">$(summ 3)</span></tt><span lang="EN-US">.
+Just replace this call with its body:</span></p>
+
+<pre><tt><span lang="EN-US">$(summ 3) -&gt;</span></tt></pre><pre><tt><span lang="EN-US">$(summ' 3 [| 0 |]) -&gt;</span></tt></pre><pre><tt><span lang="EN-US">$([| \x -&gt; $(summ' (3-1) [| $([|0|]) + x |] ) |]) -&gt;</span></tt></pre>
+
+<p><span lang="EN-US">Now, we can kill occurrences of the $([| ... |]) and [|
+$(...) |], at the same time replacing “x” with unique identifier:</span></p>
+
+<pre><tt><span lang="EN-US">\x1 -&gt; $(summ' (3-1) [|0+x1|]) -&gt;</span></tt></pre>
+
+<p><span lang="EN-US">Again replace call to</span><tt><span lang="EN-US" style="font-size:10.0pt"> summ'</span></tt><span lang="EN-US"> with its body:</span></p>
+
+<pre><tt><span lang="EN-US">\x1 -&gt; $([| \x -&gt; $(summ' (2-1) [| $([|0+x1|]) + x |] ) |]) -&gt;</span></tt></pre>
+
+<p><span lang="EN-US">And repeat the last two steps until the end:</span></p>
+
+<pre><tt><span lang="EN-US">\x1 -&gt; \x2 -&gt; $(summ' (2-1) [| 0+x1+x2 |]) -&gt;</span></tt></pre><pre><tt><span lang="EN-US">\x1 -&gt; \x2 -&gt; $([| \x -&gt; $(summ' (1-1) [| $([|0+x1+x2|]) + x |] ) |]) -&gt;</span></tt></pre><pre><tt><span lang="EN-US">\x1 -&gt; \x2 -&gt; \x3 -&gt; $(summ' (1-1) [| 0+x1+x2+x3 |]) -&gt;</span></tt></pre><pre><tt><span lang="EN-US">\x1 -&gt; \x2 -&gt; \x3 -&gt; $([| 0+x1+x2+x3 |]) -&gt;</span></tt></pre><pre><tt><span lang="EN-US">\x1 -&gt; \x2 -&gt; \x3 -&gt; 0+x1+x2+x3</span></tt></pre>
+
+<p><span lang="EN-US">It is interesting, that in this definition left side of
+lambda form (</span><tt><span lang="EN-US" style="font-size:10.0pt">\x0 -&gt;
+\x1...</span></tt><span lang="EN-US">) is build recursively right on the stack of
+calls, while the right side (</span><tt><span lang="EN-US" style="font-size:10.0pt">0+x1+...</span></tt><span lang="EN-US">) is accumulated in the </span><tt><span lang="EN-US" style="font-size:10.0pt">code </span></tt><span lang="EN-US">variable. The same
+technique is used to implement <a href="#_Example:_printf">Example: printf</a></span></p>
+
+<h2><span lang="EN-US">Reification</span></h2>
+
+<p><span lang="EN-US">Reification is a Template Haskell’s way of allowing the
+programmer to query the state of the compiler’s internal (symbol) table. The
+monadic operation “</span><tt><span lang="EN-US" style="font-size:10.0pt">reify::Name-&gt;Q
+Info</span></tt><span lang="EN-US">” returns information about given name: if
+it’s a global identifier (function, constant, constructor) – you can get it’s
+type, if it’s a type or class – you can get its structure. By using </span><tt><span lang="EN-US" style="font-size:10.0pt">reify</span></tt><span lang="EN-US"> you are
+get “entry point” to symbol’s table, which then can be used to find information
+about other types, constructors, classes related to this identifier. You can
+find definition of type </span><tt><span lang="EN-US" style="font-size:10.0pt">Info</span></tt><span lang="EN-US"> in the module </span><tt><span lang="EN-US" style="font-size:10.0pt">Language.Haskell.TH.Syntax</span></tt><span lang="EN-US">.</span></p>
+
+<p><span lang="EN-US">To get a </span><tt><span lang="EN-US" style="font-size:10.0pt">Name</span></tt><span lang="EN-US">, corresponding to identifier you are interested, you can,
+theoretically, use function </span><tt><span lang="EN-US" style="font-size:10.0pt">mkName</span></tt><span lang="EN-US">, but this solution is unsafe, because </span><tt><span lang="EN-US" style="font-size:10.0pt">mkName</span></tt><span lang="EN-US"> returns
+unqualified name, which interpretation may be changed depending on context. On
+the other side, code “</span><tt><span lang="EN-US" style="font-size:10.0pt">VarE
+id &lt;- [| name |]</span></tt><span lang="EN-US">” is safe, because </span><tt><span lang="EN-US" style="font-size:10.0pt">id </span></tt><span lang="EN-US">will be
+linked to qualified name (like “</span><tt><span lang="EN-US" style="font-size:
+10.0pt">My.Own.Module.name</span></tt><span lang="EN-US">”), but too verbose and
+need monadic context to run. So, Template Haskell supports another lightweight
+form of quotation: </span><tt><span lang="EN-US" style="font-size:10.0pt">'identifier</span></tt><span lang="EN-US"> returns </span><tt><span lang="EN-US" style="font-size:10.0pt">Name</span></tt><span lang="EN-US">, corresponding to </span><tt><span lang="EN-US" style="font-size:
+10.0pt">identifier</span></tt><span lang="EN-US">;</span><tt><span lang="EN-US" style="font-size:10.0pt"> </span></tt><span lang="EN-US">“</span><tt><span lang="EN-US" style="font-size:10.0pt">let id = 'name</span></tt><span lang="EN-US">”
+is fully equivalent to “</span><tt><span lang="EN-US" style="font-size:10.0pt">VarE
+id &lt;- [| name |]</span></tt><span lang="EN-US">”. Please note that this syntax
+construction has type </span><tt><span lang="EN-US" style="font-size:10.0pt">Name</span></tt><span lang="EN-US"> (not</span><tt><span lang="EN-US" style="font-size:10.0pt"> Q Exp</span></tt><span lang="EN-US">, nor</span><tt><span lang="EN-US" style="font-size:10.0pt"> Q Name</span></tt><span lang="EN-US">), so it can be used in contexts where monadic computations are
+impossible, for example:</span></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">f :: Exp ­&gt; Exp </span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">f (App (Var m) e) &nbsp;| &nbsp;m=='map &nbsp;= &nbsp;...</span></tt></p>
+
+<p><span lang="EN-US">This new form is still a quotation construct, just like </span><tt><span lang="EN-US" style="font-size:10.0pt">[| v |]</span></tt><span lang="EN-US">, and
+follows the same rules as quotation brackets. For example, one cannot quote
+inside quotes, so this is illegal: </span><tt><span lang="EN-US" style="font-size:10.0pt">[| 'v |]</span></tt><span lang="EN-US">. The more
+important, that it is resolved statically, and returns fully qualified </span><tt><span lang="EN-US" style="font-size:10.0pt">Name</span></tt><span lang="EN-US">, whose
+meaning will be persistent.</span></p>
+
+<p><span lang="EN-US">Haskell's name­spaces make things just slightly more
+complicated. The quotation </span><tt><span lang="EN-US" style="font-size:10.0pt">[|
+P |]</span></tt><span lang="EN-US"> would mean the data constructor P, whereas </span><tt><span lang="EN-US" style="font-size:10.0pt">[t| P |]</span></tt><span lang="EN-US"> would
+mean the type constructor P. So we need the same distinction for lightweight
+quoting. We use two single-quotes to distinguish the type context: </span></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">'v means “The name v interpreted in an expression
+context” </span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">''v means “The name v interpreted in an type context”</span></tt></p>
+
+<p><span lang="EN-US">So </span><tt><span lang="EN-US" style="font-size:10.0pt">''a</span></tt><span lang="EN-US"> means the type variable a, for example.</span></p>
+
+<p><span lang="EN-US">You can find example of using lightweight quoting and
+reification to automatically generate </span><tt><span lang="EN-US" style="font-size:10.0pt">Show </span></tt><span lang="EN-US">instances in section
+<a href="#_Example:_deriveShow">Example: deriveShow</a>.</span></p>
+
+<p><span lang="EN-US">&nbsp;</span></p>
+
+<p><span lang="EN-US">The </span><tt><span lang="EN-US" style="font-size:10.0pt">reify</span></tt><span lang="EN-US"> function can be used to get structure of type, but it cannot be
+used to get </span><tt><span lang="EN-US" style="font-size:10.0pt">Exp</span></tt><span lang="EN-US"> representing the body of already defined function. If you need to
+reify function body – put declaration of this function in quotation brackets
+and explore returned result, like this:</span></p>
+
+<p><tt><span lang="EN-US" style="font-size:10.0pt">$(optimize [d| fib = .... |])</span></tt></p>
+
+<p><span lang="EN-US">or </span></p>
+
+<p><tt><span lang="EN-US" style="font-size:10.0pt">fib = $(optimize [| .... |])</span></tt></p>
+
+<h2><span lang="EN-US">Error reporting and recovery</span></h2>
+
+<p><span lang="EN-US">The Q monad makes it possible to report errors, and recover
+from failures gracefully. Here is the interface:</span></p>
+
+<pre><tt><span lang="EN-US">report :: Bool ­&gt; String ­&gt; Q ()</span></tt></pre>
+
+<p style="margin-top:0cm;margin-right:0cm;margin-bottom:5.0pt;margin-left:35.45pt"><span lang="EN-US">Report something to the user. If the Bool is True, the something is
+treated as an error, otherwise it is simply displayed. In both cases, though,
+execution continues. The difference between the two is seen by recover; if
+there is no enclosing recover, compilation fails. </span></p>
+
+<pre><tt><span lang="EN-US">giveUp :: Q a</span></tt></pre>
+
+<p style="margin-top:0cm;margin-right:0cm;margin-bottom:5.0pt;margin-left:35.45pt"><span lang="EN-US">Stop execution; find the enclosing recover. </span></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">recover :: Q a
+­&gt; Q a ­&gt; Q a</span></tt></p>
+
+<p style="margin-top:0cm;margin-right:0cm;margin-bottom:5.0pt;margin-left:35.45pt"><span lang="EN-US">The call </span><tt><span lang="EN-US" style="font-size:10.0pt">(recover
+h q)</span></tt><span lang="EN-US"> runs q. If q executes giveUp, execution
+resumes with h. If q runs to completion, but has made some calls to report
+True, the result is discarded and h is run. If q runs to completion with no
+error report, h is ignored, and q's result is the result of the call to
+recover. </span></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">currentModule
+:: Q String </span></tt></p>
+
+<p style="margin-top:0cm;margin-right:0cm;margin-bottom:5.0pt;margin-left:35.45pt"><span lang="EN-US">Returns the name of the module being compiled. </span></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">currentLoc ::
+Q (FilePath, Int) </span></tt></p>
+
+<p style="margin-top:0cm;margin-right:0cm;margin-bottom:5.0pt;margin-left:35.45pt"><span lang="EN-US">Returns the location of the top-level splice being executed. </span></p>
+
+<h2><a name="_Debugging"></a><span lang="EN-US">Debugging</span></h2>
+
+<p><span lang="EN-US">In order to make debugging Template Haskell programs easier,
+compiler supports flag </span><tt><span lang="EN-US" style="font-size:10.0pt">-ddump-splices</span></tt><span lang="EN-US">, which shows the expansion of all top-level splices as they happen.</span></p>
+
+<p class="MsoNormal"><span lang="EN-US">Also, you can run computations in Q monad
+programmatically with help of “</span><tt><span lang="EN-US" style="font-size:
+10.0pt">runQ::Q a-&gt;IO a</span></tt><span lang="EN-US">” and print their
+results either in form of AST in order to know how you must build such
+expression:</span></p>
+
+<p class="Code"><span lang="EN-US">&nbsp;</span></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">C:\Haskell&gt; ghci
+–fth</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">ghci&gt; :m
++Language.Haskell.TH</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">ghci&gt; runQ [| \x
+_ -&gt; x |] &gt;&gt;= print</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">LamE [VarP
+x_0,WildP] (VarE x_0)</span></tt></p>
+
+<p><tt><span style="font-family:&quot;Times New Roman&quot;">... or in the form of
+Haskell code to see what the code will be generated by some splice call:</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">C:\Haskell&gt; ghci</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">ghci&gt; :m
++Language.Haskell.TH</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">ghci&gt; :m +Cnst</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p class="Code"><tt><span lang="EN-US" style="font-size:10.0pt">ghci&gt; runQ(cnst
+2 "str") &gt;&gt;= putStrLn.pprint</span></tt></p>
+
+<p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">\_ _ -&gt;
+"str"</span></tt></p>
+
+<p><span lang="EN-US">This technique can be also used in modules which imports
+appropriate definitions of functions, written in TH, but then print results of
+calls via </span><tt><span lang="EN-US" style="font-size:10.0pt">print</span></tt><span lang="EN-US"> and </span><tt><span lang="EN-US" style="font-size:10.0pt">pprint</span></tt><span lang="EN-US"> instead of splicing them:</span></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">{-# OPTIONS_GHC -fglasgow-exts -fth #-}</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">module Main where</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">import Language.Haskell.TH</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">import Cnst</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">-- module Cnst defines function `cnst`, which can be
+used in splices:</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">cnst1 = $(cnst 1 "x")</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">cnst2 = $(cnst 2 "str")</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">cnst20 = $(cnst 20 "foo")</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">-- ... but we can also run `cnst` via runQ to see how
+it works:</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">main = do runQ(cnst 1 "x") &gt;&gt;= print</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; runQ(cnst 2 "str") &gt;&gt;= print</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; runQ(cnst 20 "foo") &gt;&gt;=
+print</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; runQ(cnst 1 "x") &gt;&gt;=
+putStrLn.pprint</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; runQ(cnst 2 "str") &gt;&gt;=
+putStrLn.pprint</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; runQ(cnst 20 "foo") &gt;&gt;=
+putStrLn.pprint</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p><span lang="EN-US">This is the module Cnst, used in these examples:</span></p>
+
+<p><tt><span lang="EN-US" style="font-size:10.0pt">module Cnst where</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">import Language.Haskell.TH</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">cnst :: Int -&gt; String -&gt; Q Exp</span></tt></p>
+
+<p style="margin:0cm;margin-bottom:.0001pt"><tt><span lang="EN-US" style="font-size:10.0pt">cnst n s = return (LamE (replicate n WildP) (LitE
+(StringL s)))</span></tt></p>
+
+<h2><a name="_Example:_deriveShow"></a><a name="_Example:_printf"></a><span lang="EN-US">Example: printf</span></h2>
+
+<p><span lang="EN-US">That is the definition of function </span><tt><span lang="EN-US" style="font-size:10.0pt">printf</span></tt><span lang="EN-US">,
+mentioned earlier, together with Main module what uses it. Compile with </span>"<tt><span lang="EN-US" style="font-size:10.0pt">ghc -fth --make Main.hs</span></tt><span lang="EN-US">”</span></p>
+
+<table class="MsoNormalTable" border="0" cellpadding="0" width="100%" style="width:100.0%;background:#E0E0E0">
+ <tbody><tr>
+  <td style="padding:.75pt .75pt .75pt .75pt"><pre><tt><span lang="EN-US">{- Main.hs -}</span></tt></pre><pre><tt><span lang="EN-US">module Main where</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">-- Import our template "printf"</span></tt></pre><pre><tt><span lang="EN-US">import Printf (printf)</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">-- The splice operator $ takes the Haskell source code</span></tt></pre><pre><tt><span lang="EN-US">-- generated at compile time by "printf" and splices it into</span></tt></pre><pre><tt><span lang="EN-US">-- the argument of "putStrLn".</span></tt></pre><pre><tt><span lang="EN-US">main = putStrLn ( $(printf "Error in file %s line %d: %s") "io.cpp" 325 "printer not found" )</span></tt></pre></td>
+ </tr>
+</tbody></table>
+
+<p class="MsoNormal"><span lang="EN-US" style="display:none">&nbsp;</span></p>
+
+<p class="MsoNormal"><span lang="EN-US">&nbsp;</span></p>
+
+<table class="MsoNormalTable" border="0" cellpadding="0" width="100%" style="width:100.0%;background:#E0E0E0">
+ <tbody><tr>
+  <td style="padding:.75pt .75pt .75pt .75pt"><pre><tt><span lang="EN-US">{- Printf.hs -}</span></tt></pre><pre><tt><span lang="EN-US">module Printf where</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">-- Import Template Haskell interfaces</span></tt></pre><pre><tt><span lang="EN-US">import Language.Haskell.TH</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">-- Describe a format string</span></tt></pre><pre><tt><span lang="EN-US">data Format = D &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- represents "%d"</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | S &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- represents "%s"</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | L String&nbsp;&nbsp;&nbsp;&nbsp; -- represents other parts of format string, printed literally</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">-- Parse a format string.</span></tt></pre><pre><tt><span lang="EN-US">parse :: String -&gt; String -&gt; [Format]</span></tt></pre><pre><tt><span lang="EN-US">parse ('%':'s':xs) rest&nbsp; =&nbsp; L rest : S : parse xs ""</span></tt></pre><pre><tt><span lang="EN-US">parse ('%':'d':xs) rest &nbsp;=&nbsp; L rest : D : parse xs ""</span></tt></pre><pre><tt><span lang="EN-US">parse ""&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rest&nbsp; = [L rest]</span></tt></pre><pre><tt><span lang="EN-US">parse (x:xs)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; rest&nbsp; =&nbsp; parse xs (rest++[x])</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">-- Generate Haskell source code from a parsed representation</span></tt></pre><pre><tt><span lang="EN-US">-- of the format string.&nbsp; This code will be spliced into</span></tt></pre><pre><tt><span lang="EN-US">-- the module which calls "printf", at compile time.</span></tt></pre><pre><tt><span lang="EN-US">gen :: [Format] -&gt; ExpQ -&gt; ExpQ</span></tt></pre><pre><tt><span lang="EN-US">gen [] code = code</span></tt></pre><pre><tt><span lang="EN-US">gen (D : xs) code = [| \x-&gt; $(gen xs [| $code++show x |]) |]</span></tt></pre><pre><tt><span lang="EN-US">gen (S : xs) code = [| \x-&gt; $(gen xs [| $code++x |]) |]</span></tt></pre><pre><tt><span lang="EN-US">gen (L s : xs) code = gen xs [| $code++s |]</span></tt></pre><pre><tt><span lang="EN-US">&nbsp;</span></tt></pre><pre><tt><span lang="EN-US">-- Here we generate the Haskell code for the splice</span></tt></pre><pre><tt><span lang="EN-US">-- from an input format string.</span></tt></pre><pre><tt><span lang="EN-US">printf :: String -&gt; ExpQ</span></tt></pre><pre><tt><span lang="EN-US">printf s = gen (parse s "") [| "" |]</span></tt></pre></td>
+ </tr>
+</tbody></table>
+
+<h2><span lang="EN-US">Example: deriveShow</span></h2>
+
+<p class="MsoNormal"><span lang="EN-US">This is the minimal example which shows how
+TH can be used to automatically generate class instances. It uses </span><tt><span lang="EN-US" style="font-size:10.0pt">''type</span></tt><span lang="EN-US">
+notation and </span><tt><span lang="EN-US" style="font-size:10.0pt">reify</span></tt><span lang="EN-US"> function to generate </span><tt><span lang="EN-US" style="font-size:
+10.0pt">Show</span></tt><span lang="EN-US"> instance for given data type. To
+simplify code, I don’t handle here parametric types, types with named fields
+and other “complex” types.</span></p>
+
+<p class="MsoNormal"><span lang="EN-US">&nbsp;</span></p>
+
+<table class="MsoNormalTable" border="0" cellpadding="0" width="100%" style="width:100.0%;background:#E0E0E0">
+ <tbody><tr>
+  <td style="padding:.75pt .75pt .75pt .75pt"><pre><tt><span lang="EN-US">{- Main.hs -}</span></tt></pre>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">module Main where</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">import
+  Derive</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">data T = A Int
+  String | B Integer | C</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">$(deriveShow
+  ''T)</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <pre><tt><span lang="EN-US">main = print [A 1 "s", B 2, C]&nbsp; -- prints exactly &lt;&lt;[A 1 "s",B 2,C]&gt;&gt;</span></tt></pre></td>
+ </tr>
+</tbody></table>
+
+<p class="MsoNormal"><span lang="EN-US" style="display:none">&nbsp;</span></p>
+
+<p class="MsoNormal"><span lang="EN-US">&nbsp;</span></p>
+
+<table class="MsoNormalTable" border="0" cellpadding="0" width="100%" style="width:100.0%;background:#E0E0E0">
+ <tbody><tr>
+  <td style="padding:.75pt .75pt .75pt .75pt"><pre><tt><span lang="EN-US">{- Derive.hs -}</span></tt></pre>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">module
+  Derive where</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">import
+  Language.Haskell.TH</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">import
+  Control.Monad</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">data T1 = T1</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">data T2 a =
+  T2 a</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">deriveShow t
+  = do</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; -- Get
+  list of constructors for type t</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; TyConI
+  (DataD _ _ _ constructors _)&nbsp; &lt;-&nbsp; reify t</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; -- Make
+  `show` clause for one constructor:</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; --&nbsp;&nbsp; show
+  (A x1 x2) = "A "++show x1++" "++show x2</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; let
+  showClause (NormalC name fields) = do</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --
+  Name of constructor, i.e. "A". Will become string literal in
+  generated code</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; let
+  constructorName = nameBase name</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --
+  Get variables for left and right side of function definition</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  (pats,vars) &lt;- genPE (length fields)</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --
+  Recursively build (" "++show x1++...++"") expression from
+  [x1...] variables list</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; let
+  f []&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = [| "" |]</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  f (v:vars) = [| " " ++ show $v ++ $(f vars) |]</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --
+  Generate function clause for one constructor</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  clause [conP name pats]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- (A x1 x2)</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  (normalB [| constructorName ++ $(f vars) |]) []&nbsp; -- "A "++show
+  x1++" "++show x2</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; -- Make
+  body for function `show`:</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; --&nbsp;&nbsp; show
+  (A x1 x2) = "A "++show x1++" "++show x2</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; --&nbsp;&nbsp; show
+  (B x1)&nbsp;&nbsp;&nbsp; = "B "++show x1</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; --&nbsp;&nbsp; show
+  C&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = "C"</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; showbody
+  &lt;- mapM showClause constructors</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; --
+  Generate template instance declaration and then replace</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; --&nbsp;&nbsp; type
+  name (T1) and function body (\x -&gt; "text") with our data</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; d &lt;-
+  [d| instance Show T1 where</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  show x = "text"</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; |]</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; let&nbsp;&nbsp;&nbsp;
+  [InstanceD [] (AppT showt (ConT _T1)) [FunD showf _text]] = d</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; return
+  [InstanceD [] (AppT showt (ConT t&nbsp; )) [FunD showf showbody]]</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp;</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">-- Generate
+  n unique variables and return them in form of patterns and expressions</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">genPE n = do</span></tt></p>
+  <p class="MsoNormal"><tt><span lang="EN-US" style="font-size:10.0pt">&nbsp; ids &lt;-
+  replicateM n (newName "x")</span></tt></p>
+  <pre><tt><span lang="EN-US">&nbsp; return (map varP ids, map varE ids)</span></tt></pre></td>
+ </tr>
+</tbody></table>
+
+<p class="MsoNormal"><span lang="EN-US" style="display:none">&nbsp;</span></p>
+
+<p class="MsoNormal"><span lang="EN-US">&nbsp;</span></p>
+
+</div>
+</body></html>
