@@ -22,6 +22,10 @@ isObject :: Value -> Bool
 isObject (Object obj) = True;
 isObject _ = False;
 
+--проверка на сложность JSON
+isComp:: Value -> Bool
+isComp (Object obj) = StrHash.foldl' (\pred elem -> if (isObject elem) then True || pred else pred) False (obj)
+
 getMapKeys :: Maybe Value -> [Text]
 getMapKeys map' = foldlWithKey' (\list' key' val' -> if (isObject val') then key' : list' else key' : list') [] (toHashMap $ fromJust $ map')
 
