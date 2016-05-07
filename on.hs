@@ -3,9 +3,11 @@
 import Language.Haskell.TH
 import DataCreation
 
+data Arra = Arra {fg::String}
+   deriving (Show,Eq)
+
 $(getDataFromJSON)
 
-dataPerson = JSON {name = "Oleg", arr = [1,2,3], age = 12, avg = 12}
+dataPerson = JSONData {name = "Oleg", age = 12, avg = 12, arra = Arra {fg = "Oleg"}}
 
 main = print dataPerson
-
