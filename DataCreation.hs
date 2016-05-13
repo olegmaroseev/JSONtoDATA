@@ -12,21 +12,26 @@ import Data.Char
 import Data.Generics
 import Language.Haskell.TH.Syntax
 import Data.Vector
+import Control.Monad.State
 
 personJSON =  fromJust $ decode $ "{\"name\":\"Joe\", \"age\":25, \"avg\":4, \"arr\" : [1,2,3]}" :: Maybe Value
 
 personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\", \"age\":25, \"avg\":4, \"arra\" : {\"fg\" : \"qwerty\"}}" :: Maybe Value
 
+arrJs = fromJust $ decode $ "{\"fg\" : \"qwerty\"}" :: Maybe Value
+
 compJSON = fromJust $ decode $ "{\"name\":\"Joe\",\"age\":{\"foo\": {\"r\" : 12}}}" :: Maybe Value
 
-
-createData name' json' =
-           DataD
+createData name' json' dataList =
+           (DataD
                 []
                 (mkName name')
                 []
-                [ RecC (mkName name') (mka $ json') ]
+                [ RecC (mkName name') (fst $ mka $ json' dataList) ]
                 [mkName "Show", mkName "Eq"]
+           ,
+                snd $ mka $ json' dataList
+           )
 
 toHashMap :: Value -> Object
 toHashMap (Object obj) = obj
@@ -70,11 +75,30 @@ numOfInsertedObjects (Object obj) = foldlWithKey' (\acc' key' val' ->
 
 numOfInsertedObjects _ = 0
 
-mka :: Maybe Value -> [Language.Haskell.TH.Syntax.VarStrictType]
-mka map' = foldlWithKey' (\list' key' val' ->
-      ((mkName $ Data.Text.unpack $ key'),NotStrict,(mkValType val' (Data.Text.unpack $ key') )) : list')
-      []
-      (toHashMap $ fromJust $ map')
+--mka :: Maybe Value -> ([Language.Haskell.TH.Syntax.VarStrictType],)
+mka (map',dataList) = foldlWithKey' (\list' key' val' ->
+    if (isObject val')
+      then
+          (  (  (mkName $ Data.Text.unpack $ key'),
+                NotStrict,
+                (   mkValType val' (Data.Text.unpack $ key')    )
+             )
+          ,
+              (fst (createData (firstLetterToUpper key') val')) : dataList
+          ) : list'
+
+      else
+          (  (  (mkName $ Data.Text.unpack $ key'),
+             NotStrict,
+             (   mkValType val' (Data.Text.unpack $ key')    )
+             )
+          ,
+             dataList
+          ) : list'
+                                    )
+                             []
+                             (toHashMap $ fromJust $ map')
+
 
 getDataFromJSON::DecsQ
 getDataFromJSON = do
@@ -91,4 +115,10 @@ getDataFromJSON = do
         ]
 
 --mainConverter::DecsQ
---mainConverter = foldlWithKey'
+mainConverter = fst $ (createData "JSONData" personJSON2 []) : []
+
+--mainConverter::DecsQ
+dataTemplate::DecsQ
+dataTemplate = do
+  return $
+           mainConverter
