@@ -14,24 +14,27 @@ import Language.Haskell.TH.Syntax
 import Data.Vector
 import Control.Monad.State
 
-personJSON =  fromJust $ decode $ "{\"name\":\"Joe\", \"age\":25, \"avg\":4, \"arr\" : [1,2,3]}" :: Maybe Value
+personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",
+                                    \"age\":25, \"avg\":4,
+                                    \"arr\" : [1,2,3]}" :: Maybe Value
 
-personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\", \"age\":25, \"avg\":4, \"arra\" : {\"fg\" : \"qwerty\"}}" :: Maybe Value
+personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\",
+                                     \"age\":25,
+                                     \"avg\":4,
+                                     \"arra\" :
+                                          {\"fg\" : \"qwerty\"}}" :: Maybe Value
 
 arrJs = fromJust $ decode $ "{\"fg\" : \"qwerty\"}" :: Maybe Value
 
 compJSON = fromJust $ decode $ "{\"name\":\"Joe\",\"age\":{\"foo\": {\"r\" : 12}}}" :: Maybe Value
 
-createData name' json' dataList =
-           (DataD
+createData name' json' =
+           DataD
                 []
                 (mkName name')
                 []
-                [ RecC (mkName name') (fst $ mka $ json' dataList) ]
+                [ RecC (mkName name') (mka $ json') ]
                 [mkName "Show", mkName "Eq"]
-           ,
-                snd $ mka $ json' dataList
-           )
 
 toHashMap :: Value -> Object
 toHashMap (Object obj) = obj
@@ -64,7 +67,8 @@ getContentFromType (ConT val') = val'
 mkValType (Number val') name'= ConT (mkName "Float")
 mkValType (String val') name' = ConT (mkName "String")
 mkValType (Bool val') name' = ConT (mkName "Bool")
-mkValType (Array val') name' = AppT (ListT) (mkValType (Data.Vector.head val') name')
+mkValType (Array val') name' = AppT (ListT)
+                                    (mkValType (Data.Vector.head val') name')
 mkValType (Object val') name' = ConT (mkName $ firstLetterToUpper name')
 
 numOfInsertedObjects:: Value -> Int
@@ -76,28 +80,30 @@ numOfInsertedObjects (Object obj) = foldlWithKey' (\acc' key' val' ->
 numOfInsertedObjects _ = 0
 
 --mka :: Maybe Value -> ([Language.Haskell.TH.Syntax.VarStrictType],)
-mka (map',dataList) = foldlWithKey' (\list' key' val' ->
+mka map' = foldlWithKey' (\list' key' val' ->
     if (isObject val')
       then
-          (  (  (mkName $ Data.Text.unpack $ key'),
+            modify (++) $ [(createData key' val')] >>
+            (   (mkName $ Data.Text.unpack $ key'),
                 NotStrict,
                 (   mkValType val' (Data.Text.unpack $ key')    )
-             )
-          ,
-              (fst (createData (firstLetterToUpper key') val')) : dataList
-          ) : list'
+            )
 
+        --      (fst (createData (firstLetterToUpper key') val')) : dataList
+           : list'
       else
-          (  (  (mkName $ Data.Text.unpack $ key'),
-             NotStrict,
-             (   mkValType val' (Data.Text.unpack $ key')    )
-             )
-          ,
-             dataList
-          ) : list'
-                                    )
+            (  (mkName $ Data.Text.unpack $ key'),
+               NotStrict,
+               (   mkValType val' (Data.Text.unpack $ key')    )
+            )
+
+            -- dataList
+           : list'
+                         )
                              []
                              (toHashMap $ fromJust $ map')
+      >>
+         
 
 
 getDataFromJSON::DecsQ
