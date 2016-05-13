@@ -14,15 +14,9 @@ import Language.Haskell.TH.Syntax
 import Data.Vector
 import Control.Monad.State
 
-personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",
-                                    \"age\":25, \"avg\":4,
-                                    \"arr\" : [1,2,3]}" :: Maybe Value
+personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arr\" : [1,2,3]}" :: Maybe Value
 
-personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\",
-                                     \"age\":25,
-                                     \"avg\":4,
-                                     \"arra\" :
-                                          {\"fg\" : \"qwerty\"}}" :: Maybe Value
+personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arra\" : {\"fg\" : \"qwerty\"}}" :: Maybe Value
 
 arrJs = fromJust $ decode $ "{\"fg\" : \"qwerty\"}" :: Maybe Value
 
@@ -80,10 +74,11 @@ numOfInsertedObjects (Object obj) = foldlWithKey' (\acc' key' val' ->
 numOfInsertedObjects _ = 0
 
 --mka :: Maybe Value -> ([Language.Haskell.TH.Syntax.VarStrictType],)
-mka map' = foldlWithKey' (\list' key' val' ->
+mka map' =
+                         foldlWithKey' (\list' key' val' ->
     if (isObject val')
       then
-            modify (++) $ [(createData key' val')] >>
+            --Control.Monad.State.modify (Prelude.++) $ [(createData key' val')] >>
             (   (mkName $ Data.Text.unpack $ key'),
                 NotStrict,
                 (   mkValType val' (Data.Text.unpack $ key')    )
@@ -102,29 +97,16 @@ mka map' = foldlWithKey' (\list' key' val' ->
                          )
                              []
                              (toHashMap $ fromJust $ map')
-      >>
-         
 
+--mainConverter::DecsQ
+mainConverter:: State [Dec] [Dec]
+mainConverter = do
+  acc <- Control.Monad.State.get
+  Control.Monad.State.put []
+  Control.Monad.State.modify $ (Prelude.++) [createData "JSONData" personJSON]
+  return acc
 
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
-        [DataD
-                []
-                (mkName "JSONData")
-                []
-                [
-				RecC (mkName "JSONData")
-                                (mka $ personJSON2)
-                ]
-                [mkName "Show", mkName "Eq"]
-        ]
-
---mainConverter::DecsQ
-mainConverter = fst $ (createData "JSONData" personJSON2 []) : []
-
---mainConverter::DecsQ
-dataTemplate::DecsQ
-dataTemplate = do
-  return $
-           mainConverter
+          snd (runState mainConverter $ []) 
