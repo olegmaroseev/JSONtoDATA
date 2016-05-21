@@ -14,7 +14,7 @@ import Language.Haskell.TH.Syntax
 import Data.Vector
 import Control.Monad.State
 
-personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arr\" : [1,2,3]}" :: Maybe Value
+personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arr\" : [1,2,3]}" :: Value
 
 personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arra\" : {\"fg\" : \"qwerty\"}}" :: Maybe Value
 
@@ -30,7 +30,7 @@ createData name' json' =
                 [ RecC (mkName name') (mka $ json') ]
                 [mkName "Show", mkName "Eq"]
 
-toHashMap :: Value -> Object
+--toHashMap :: Value -> Object
 toHashMap (Object obj) = obj
 
 --проверка на то, что Value является Object
@@ -73,35 +73,39 @@ numOfInsertedObjects (Object obj) = foldlWithKey' (\acc' key' val' ->
 
 numOfInsertedObjects _ = 0
 
+mapKeys' =  (foldlWithKey'
+    (\map' key' value' -> StrHash.insert (Data.Text.unpack key') value' map')
+    StrHash.empty)
+
 --mka :: Maybe Value -> ([Language.Haskell.TH.Syntax.VarStrictType],)
 mka map' =
                          foldlWithKey'
                          (\list' key' val' ->
     if (isObject val')
       then
-           (Control.Monad.State.modify $ (Prelude.++) [(createData key' val')]) >>
-            ((   (mkName $ Data.Text.unpack $ key'),
+            (Control.Monad.State.modify $ (Prelude.++) [(createData key' val')]) >>
+            ((   (mkName $  key'),
                 NotStrict,
-                (   mkValType val' (Data.Text.unpack $ key')    )
+                (   mkValType val' key'    )
             )
             : list')
       else
             (Control.Monad.State.modify $ (Prelude.++) []) >>
-            ((  (mkName $ Data.Text.unpack $ key'),
+            ((  (mkName $ key'),
                NotStrict,
-               (   mkValType val' (Data.Text.unpack $ key')    )
+               (   mkValType val'  key'    )
             )
             : list')
                          )
                          []
-                         (toHashMap $ fromJust $ map')
+                         (mapKeys' $ toHashMap map')
 
 --mainConverter::DecsQ
 mainConverter:: State [Dec] [Dec]
 mainConverter = do
   acc <- Control.Monad.State.get
   Control.Monad.State.put []
-  Control.Monad.State.modify $ (Prelude.++) [createData "JSONData" personJSON]
+  Control.Monad.State.modify $ (Prelude.++) [createData "JSONData" $ personJSON]
   return acc
 
 getDataFromJSON::DecsQ
