@@ -97,14 +97,13 @@ mka map' =
                          (toHashMap $ fromJust $ map')
 
 --mainConverter::DecsQ
-mainConverter:: State [Dec] [Dec]
+mainConverter:: State [Dec] ()
 mainConverter = do
-  acc <- Control.Monad.State.get
   Control.Monad.State.put []
   Control.Monad.State.modify $ (Prelude.++) [createData "JSONData" personJSON]
-  return acc
+
 
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
-          snd (runState mainConverter $ [])
+          Data.List.reverse $ snd (runState mainConverter $ [])
