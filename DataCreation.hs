@@ -77,10 +77,13 @@ numOfInsertedObjects (Object obj) = StrHash.foldlWithKey' (\acc' key' val' ->
            else acc' + numOfInsertedObjects val') 0 obj
 numOfInsertedObjects _ = 0
 
+--преобразование HashMap
+mapKeys' :: StrHash.HashMap Text v -> StrHash.HashMap String v
 mapKeys' =  (StrHash.foldlWithKey'
     (\map' key' value' -> StrHash.insert (Data.Text.unpack key') value' map')
     StrHash.empty)
 
+--монадическая свертка Hashmap по ключу и значению
 foldlWithKeyM :: (Monad m) => (b -> k -> a -> m b) -> b ->
                                                       StrHash.HashMap k a -> m b
 foldlWithKeyM f b = FB.foldlM f' b . StrHash.toList
@@ -118,7 +121,7 @@ convertObject name' json' = do
                 [ RecC (mkName name') result ]
                 [mkName "Show", mkName "Eq"] ]
 
---
+--DecsQ = Q [Dec]
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
