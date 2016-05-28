@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 import Language.Haskell.TH
-import DataCreat
+import DataCreation
 
 $(getDataFromJSON)
 

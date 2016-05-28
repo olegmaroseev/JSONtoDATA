@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module DataCreation where
 
@@ -13,15 +14,21 @@ import Data.Generics
 import Language.Haskell.TH.Syntax
 import Data.Vector
 import Control.Monad.State
+import qualified Data.Foldable    as FB
+import qualified Data.Map         as M
+import Data.List
 
-personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arr\" : [1,2,3]}" :: Maybe Value
+personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arr\" : [1,2,3]}" :: Value
 
-personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arra\" : {\"fg\" : \"qwerty\"}}" :: Maybe Value
+personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arra\" : {\"fg\" : \"qwerty\"}}" :: Value
 
 arrJs = fromJust $ decode $ "{\"fg\" : \"qwerty\"}" :: Maybe Value
 
 compJSON = fromJust $ decode $ "{\"name\":\"Joe\",\"age\":{\"foo\": {\"r\" : 12}}}" :: Maybe Value
 
+foldrWithKeyM :: (Monad m) => (k -> a -> b -> m b) -> b -> M.Map k a -> m b
+foldrWithKeyM f b = FB.foldrM (uncurry f) b . M.toList
+{-
 createData name' json' =
            DataD
                 []
@@ -29,8 +36,8 @@ createData name' json' =
                 []
                 [ RecC (mkName name') (mka $ json') ]
                 [mkName "Show", mkName "Eq"]
-
-toHashMap :: Value -> Object
+-}
+--toHashMap :: Value -> Object
 toHashMap (Object obj) = obj
 
 --проверка на то, что Value является Object
@@ -73,37 +80,43 @@ numOfInsertedObjects (Object obj) = foldlWithKey' (\acc' key' val' ->
 
 numOfInsertedObjects _ = 0
 
---mka :: Maybe Value -> ([Language.Haskell.TH.Syntax.VarStrictType],)
-mka map' =
-                         foldlWithKey'
-                         (\list' key' val' ->
-    if (isObject val')
-      then
-           (Control.Monad.State.modify $ (Prelude.++) [(createData key' val')]) >>
-            ((   (mkName $ Data.Text.unpack $ key'),
-                NotStrict,
-                (   mkValType val' (Data.Text.unpack $ key')    )
-            )
-            : list')
-      else
-            (Control.Monad.State.modify $ (Prelude.++) []) >>
-            ((  (mkName $ Data.Text.unpack $ key'),
-               NotStrict,
-               (   mkValType val' (Data.Text.unpack $ key')    )
-            )
-            : list')
-                         )
-                         []
-                         (toHashMap $ fromJust $ map')
+mapKeys' =  (foldlWithKey'
+    (\map' key' value' -> StrHash.insert (Data.Text.unpack key') value' map')
+    StrHash.empty)
 
---mainConverter::DecsQ
-mainConverter:: State [Dec] ()
-mainConverter = do
-  Control.Monad.State.put []
-  Control.Monad.State.modify $ (Prelude.++) [createData "JSONData" personJSON]
+foldlWithKeyM :: (Monad m) => (b -> k -> a -> m b) -> b -> StrHash.HashMap k a -> m b
+foldlWithKeyM f b = FB.foldlM f' b . StrHash.toList
+  where f' a = uncurry (f a)
 
+convertFields map' = foldlWithKeyM upd [] (mapKeys' $ toHashMap map')
+ where
+    upd list' key' val' 
+        | isObject val' =
+                do
+                  result <- convertFields $ val'
+                  Control.Monad.State.modify ((Prelude.++) [DataD
+                                                             []
+                                                             (mkName $ firstLetterToUpper key')
+                                                             []
+                              [ RecC (mkName $ firstLetterToUpper key')  (result) ]
+                                                          [mkName "Show", mkName "Eq"] ])
+                  (Control.Monad.State.return  (((mkName $  key'), NotStrict, (   mkValType val' key')) : list'))
+        | otherwise =
+                do
+                  (Control.Monad.State.return (((mkName $  key'), NotStrict, (mkValType val' key') )    : list'))
+                
+convertObject:: String -> Value -> State [Dec] ()
+convertObject name' json' = do
+    result <- convertFields json'
+    Control.Monad.State.modify $ (Prelude.++) [DataD
+                []
+                (mkName name')
+                []
+                [ RecC (mkName name') result ]
+                [mkName "Show", mkName "Eq"] ]
 
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
-          Data.List.reverse $ snd (runState mainConverter $ [])
+          (snd (runState (convertObject "JSONData" personJSON2) $ []) ) 
+
