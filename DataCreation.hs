@@ -102,7 +102,7 @@ convertFields map' = foldlWithKeyM upd [] (mapKeys' $ toHashMap map')
                           (mkName $ firstLetterToUpper key')
                           []
                           [ RecC (mkName $ firstLetterToUpper key')  (result) ]
-                          [mkName "Show", mkName "Eq"] ])
+                          [mkName "Generic", mkName "Show", mkName "Eq"] ])
                   (MState.return  (((mkName $  key'), NotStrict,
                                              (   mkValType val' key')) : list'))
         | otherwise =
@@ -119,10 +119,10 @@ convertObject name' json' = do
                 (mkName name')
                 []
                 [ RecC (mkName name') result ]
-                [mkName "Show", mkName "Eq"] ]
+                [mkName "Generic",mkName "Show", mkName "Eq"] ]
 
 --DecsQ = Q [Dec]
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
-          (snd (runState (convertObject "JSONData" personJSON2) $ []) )
+          (snd (runState (convertObject "JSONData" personJSON) $ []) )

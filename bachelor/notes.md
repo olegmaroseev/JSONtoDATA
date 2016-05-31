@@ -2,8 +2,16 @@
 https://github.com/bos/aeson
 https://artyom.me/aeson
 
+A JSON parsing and encoding library optimized for ease of use and high performance.
+
+There are 2 main classes used in Aeson – FromJSON and ToJSON. A type which you want to convert to/from JSON should be an instance of these classes. You can think of FromJSON as of Read, and of ToJSON as of Show – but instead of reading from a string or converting to a string, you read from JSON or convert to JSON.
+
+There are also 2 functions for actually doing “reading” and “showing”, which are called decode and encode. (decode differs from read a bit by returning Nothing if reading was unsuccessful, instead of throwing an exception – so, it's closer to readMaybe in this regard.)
+
 Data.Aeson - библиотека для работы с файлами в формате JSON. Самый простой способ использования библотеки - определить DATA. Помимо простого кодирования/декодирования JSON она также позволяет удобным образом писать сериализаторы и десериализаторы для произвольных типов. 
 
+A JSON value represented as a Haskell value.
+There are 2 main classes used in Aeson – FromJSON and ToJSON. A type which you want to convert to/from JSON should be an instance of these classes. 
 Aeson имеют свой собственный тип для представления конвертируемого JSON файла. Этот тип называется Value и имеет 6 конструкторов:
 ```haskell
 data Value
