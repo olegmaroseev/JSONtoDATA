@@ -18,6 +18,8 @@ import qualified Data.Foldable    as FB
 import qualified Data.Map         as M
 import qualified Data.List        as DList
 
+extraSimple = fromJust $ decode $ "{\"name\":\"Joe\"}" :: Value
+
 personJSON =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arr\" : [1,2,3]}" :: Value
 
 personJSON2 =  fromJust $ decode $ "{\"name\":\"Joe\",\"age\":25,\"avg\":4,\"arra\" : {\"fg\" : \"qwerty\"}}" :: Value
@@ -125,4 +127,4 @@ convertObject name' json' = do
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
-          (snd (runState (convertObject "JSONData" personJSON) $ []) )
+          (snd (runState (convertObject "JSONData" extraSimple) $ []) )
