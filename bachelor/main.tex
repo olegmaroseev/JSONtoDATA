@@ -48,7 +48,7 @@ JSON (\lstinline{JavaScript Object Notation})~\cite{jsonStandart} - просто
 Пример данных в формате JSON:
 \begin{Verb}
 {     
-    "firstName": "John"
+    "firstName": "John",
     "lastName" : "Smith",
     "age" : 25
 }
@@ -223,25 +223,102 @@ Just (Object (fromList [("foo",Array (fromList [String "abc",
 
 \section{Template Haskell}
 
-Template Haskell - это расширение языка Haskell, реализующее средства для метапрограммирования.~\cite{extensionHub}
+Template Haskell - это расширение языка Haskell, реализующее средства для метапрограммирования.~\cite{extensionHub} Оно позволяет использовать Haskell как язык управления и как управляемый язык. Так как работа ведется с расширением, то в исходник необходимо добавить директиву:
+
+\begin{lstlisting}[language=Haskell]
+{-# LANGUAGE TemplateHaskell #-}.
+\end{lstlisting}
+
+\subsection{Монада Q}
+
+Монада \lstinline{Q} оборачивает Функция \lstinline{lift} поднимаеь
+
+\subsection{Вклейка(splicing)}
+
+Вклейка кода производится оператором  \$(...), который разворачивает шаблон с данным параметром в обычный Haskell код во время компиляции и вклеивает его на то же место. 
 
 \subsection{Модуль Language.Haskell.TH.Syntax~\cite{coverHaskell}}
 
-Тип Exp определен в модуле Language.Haskell.TH.Syntax и представляет собой абстрактное синтаксическое дерево (AST) кода на Haskell.~\cite{thSyntax}
+Тип \lstinline{Exp} определен в модуле Language.Haskell.TH.Syntax и представляет собой абстрактное синтаксическое дерево (AST) кода на Haskell.~\cite{thSyntax} \lstinline{Exp} имеет около 25 конструкторов значения. В листинге ~\ref{listing:expConstr} представлены только некоторые.  
 
 \begin{ListingEnv}[H]
 \begin{Verb}
-
+data Exp
+       = VarE Name
+       | AppE Exp Exp
+       | MultiIfE [(Guard, Exp)]
+       | CondE Exp Exp Exp
+       | ...
 \end{Verb}
 \caption{Конструкторы Exp}
 \label{listing:expConstr}
 \end{ListingEnv}
 
-\chapter{Генерация алгебраических типов данных по JSON}
+\chapter{Пример практического использования}
+
 Git-репозиторий с исходным кодом на языке \lstinline{Haskell} доступен по адресу ~\cite{diploma}. 
 
+\section{Простой пример}
+Для начала будет рассмотрен простой пример. На вход программе подается простой \lstinline{JSON}, т.е. без вложенных объектов (листинг ~\ref{listing:json1}).
 
-\chapter{Варианты использования}
+\begin{ListingEnv}[H]
+\begin{Verb}
+{
+    "name" : "Joe",
+    "age" : 25,
+    "avg" : 4,
+    "arr" : [1,2,3]
+}
+\end{Verb}
+\label{listing:json1}
+\end{ListingEnv}
+
+В итоге мы получаем тип данных с именованными полями, полностью соответсвующий постановке задачи:
+
+\begin{lstlisting}[language=Haskell]
+data JSONData 
+        = JSONData {arr :: [Float]
+                    name :: String,
+                    age :: Float,
+                    avg :: Float}
+          deriving (Show, Eq, Generic)
+\end{lstlisting}
+
+\section{Более сложный пример}
+
+На вход программе подается \lstinline{JSON} со вложенным объектом. (Листинг ~\ref{listing:json2})  Интерес представляет то, как он будет представлен. 
+
+\begin{ListingEnv}[H]
+\begin{Verb}
+{
+    "name" : "Joe",
+    "age" : 25,
+    "avg" : 4,
+    "arra" : 
+             {
+                 "fg" : "JSONTest"  
+             }
+}
+\end{Verb}
+\label{listing:json2}
+\end{ListingEnv}
+
+После выполнения программы мы получаем 2 типа данных, что полностью соответствует заявленным требованиям к программе. Первый тип в своем определении использует второй. 
+
+\begin{lstlisting}[language=Haskell]
+data JSONData
+      = JSONData {name :: String,
+                  arra :: Arra,
+                  age :: Float,
+                  avg :: Float}
+        deriving (Show, Eq, Generic)
+
+data Arra
+      = Arra {fg :: String}
+        deriving (Show, Eq, Generic)            
+\end{lstlisting}
+
+
 
 
 % Печать списка литературы (библиографии)
