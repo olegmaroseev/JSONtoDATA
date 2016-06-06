@@ -306,7 +306,7 @@ mkName :: String -> Name
 \label{listing:mkName}
 \end{ListingEnv} 
 
-В коде реализации мы используем тип из листинга~\ref{listing:dataDTH} для вклейки типа в объявлениях верхнего уровня. \lstinline{RecC} дает понять, что сгенерированный тип должен представлять собой запись с именованными полями. Использование класса типов \lstinline{Generic} пригодится в будущем, когда будут генерироваться шаблоны \lstinline{FromJSON} и \lstinline{ToJSON} ,описанные в разделе~\ref{sec:secAeson}.
+В коде реализации мы используем тип из листинга~\ref{listing:dataDTH} для вклейки в объявлениях верхнего уровня. \lstinline{RecC} дает понять, что сгенерированный тип должен представлять собой запись с именованными полями. Использование класса типов \lstinline{Generic} пригодится в будущем, когда будут генерироваться экземпляры классов \lstinline{FromJSON} и \lstinline{ToJSON} для вклеивомого типа, описанные в разделе~\ref{sec:secAeson}.
 
 \begin{ListingEnv}[H]
 \begin{Verb}
@@ -319,6 +319,19 @@ DataD
 \end{Verb}
 \caption{Генерация Data в тексте программы}
 \label{listing:dataDTHjson}
+\end{ListingEnv} 
+
+Важно помнить, что имена типов данных в \lstinline{Haskell} начинаются с заглавных букв. А так как мы знаем, что у нас могут быть сложные случаи то полезна функция \lstinline{firstLetterToUpper} (листинг~\ref{listing:letterChange}).
+
+\begin{ListingEnv}[H]
+\begin{Verb}
+firstLetterToUpper :: String -> String
+firstLetterToUpper fieldName = (Data.Char.toUpper 
+                                         \$ DList.head fieldName)
+                                         : (DList.tail fieldName)
+\end{Verb}
+\caption{Функция смены первой буквы на заглавную}
+\label{listing:letterChange}
 \end{ListingEnv} 
 
 \section{Использование монады State}
@@ -349,16 +362,58 @@ foldlWithKeyM f b = FB.foldlM f' b . StrHash.toList
 
 \section{Основная часть}
 
-Основной функцией, которая объединяет воедино получение AST библиотекой Data.Aeson, обход этого дерева и аккумуляцию типов Dec, является функция 
+Основной функцией, которая запускает проход по AST и начинает накапивать значения в монаде \lstinline{State} является: 
 
-Функция которая проходит по Hashmap имеет сигнатуру:
+\begin{lstlisting}[language=Haskell]
+convertObject:: String -> Value -> State [Dec] ()
+\end{lstlisting}
+
+Функция \lstinline{convertObject} получает на вход имя типа данных и AST, полученное с помощью \lstinline{decode}(\lstinline{Data.Aeson}). А дальше происходит спуск по дереву и анализ его вершин:
 
 \begin{lstlisting}[language=Haskell]
 convertFields:: MonadState [Dec] m => Value -> 
-                                        m [(Name, Strict, Type)]
+                                         m [(Name, Strict, Type)]
 \end{lstlisting}
 
-Функция convertFields как раз порождает именованные поля для типа данных.
+Как можно видеть из сигнатуры, анализ и спуск происходит в монаде. Именно при проходе по вершинам мы используем написанный ранее \lstinline{foldlWithKeyM}. Главная задача - помнить, что при проходе мы можем встретить вложенные объекты в объект и вызывать функцию рекурсивно. Для этого мы используем простую функцию (листинг~\ref{listing:object}). \lstinline{convertFields} получает массив из \lstinline{(Name, Strict, Type)}, который подставляется в (листинг~\ref{listing:dataDTHjson}) вместо переменной \lstinline{result}.
+
+\begin{ListingEnv}[H]
+\begin{Verb}
+isObject :: Value -> Bool
+isObject (Object obj) = True;
+isObject _ = False;
+\end{Verb}
+\caption{Проверка на принадлежность Object}
+\label{listing:object}
+\end{ListingEnv} 
+
+Все полезные для генерации данные собираются за один проход AST. При проходе, если мы дошли до листа мы вызываем \lstinline{return}, который возвращает \lstinline{[(Name, Strict, Type)]} (листинг~\ref{listing:otherwiseTree}). И далее продолжается обход. \lstinline{MState} --- квалифицированый импорт модуля \lstinline{Control.Monad.State}.
+
+\begin{ListingEnv}[H]
+\begin{Verb}
+do
+      (MState.return (((mkName \$  key'), NotStrict,
+                                (mkValType val' key') ) : list'))
+\end{Verb}
+\caption{Простой случай при обходе}
+\label{listing:otherwiseTree}
+\end{ListingEnv} 
+
+Если при проходе по дереву срабатывает условие из листинга~\ref{listing:otherwiseTree}, происходит рекурсивный спуск --- вызов функции \lstinline{convertFields} с вложенным найденным объектом (листинг ~\ref{listing:isObjectTree}).
+
+\begin{ListingEnv}[H]
+\begin{Verb}
+do
+      result <- convertFields \$ val'
+      MState.modify ((Prelude.++) [DataD ... ])
+      (MState.return (((mkName \$  key'), NotStrict,
+                                (mkValType val' key') ) : list'))
+\end{Verb}
+\caption{Сложный случай при обходе}
+\label{listing:isObjectTree}
+\end{ListingEnv} 
+
+Так осуществляется вся работа программы. Обрабатываеся каждый вложенный объект и каждый лист AST. На выходе получаем структуру \lstinline{[Dec]} и оборачиваем ее в монаду \lstinline{Q} для вызова вклейки из другого модуля через оператор \lstinline{\$(...)}.
 
 \chapter{Пример практического использования}
 
@@ -444,13 +499,23 @@ data Arra
 
 \chapter{Варианты дальнейшего применения}
 
-Соответственно, один из вариантов использования - получать JSON-файл из базы данных и далее преобразовывать его в тип данных на языке Haskell. Далее можно прописать полезные функции для его изменения, которые используют преимущества функционального программирования и "ленивость". Также это можно организовать по расписанию, если допустим нужно отслеживать изменения в JSON файлах. В UNIX-подобных операционных системах для этого используется специальная утилита cron.
+\section{Использование в cron}
+
+Один из вариантов использования - получать JSON-файл из базы данных и далее преобразовывать его в тип данных на языке Haskell. Далее можно прописать полезные функции для его изменения, которые используют преимущества функционального программирования и "ленивости". Также это можно организовать по расписанию, если допустим нужно отслеживать изменения в JSON файлах. В UNIX-подобных операционных системах для этого используется специальная утилита cron.
 
 \lstinline{cron} – программа-демон, предназначенная для выполнения заданий в определенное время, или через определенные промежутки времени. Для редактирования заданий используется утилита \lstinline{crontab}.
 
+\section{Работа с данными}
+
+Друго вариант 
+
 \Conc
 
-В работе была рассмотрена идея метапрограммирования и поставлена задача генерации алгебраических типов данных. Также была разобрана работающая реализация задачи на функциональном языке программирования \lstinline{Haskell}. 
+В работе была рассмотрена идея метапрограммирования и поставлена задача генерации алгебраических типов данных. Также была разобрана работающая реализация задачи на функциональном языке программирования \lstinline{Haskell}. При этом продемонстрированы результаты запусков программы в виде созданных типов данных.
+
+При подготовке были глубоко изучены сильные стороны функционального программирования, расширение \lstinline{Template Haskell} и сопутствующие библиотеки.
+
+Эта работа даёт представление о возможностях метапрограммирования на языке \lstinline{Haskell}. Также формирует представление о многообразии задач, в которых его можно применить.	
 
 % Печать списка литературы (библиографии)
 \printbibliography[%{}
