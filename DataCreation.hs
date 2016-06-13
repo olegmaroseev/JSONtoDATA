@@ -50,8 +50,8 @@ getMapKeys map' = StrHash.foldlWithKey' (\list' key' val' -> if (isObject val')
 
 --переход первой буквы из строчной в заглавную
 firstLetterToUpper :: String -> String
-firstLetterToUpper fieldName = (Data.Char.toUpper $ DList.head fieldName)
-                                                     : (DList.tail fieldName)
+firstLetterToUpper (x:xs) = (Data.Char.toUpper $ x)
+                                                     : (xs)
 
 --создание списка типов для полей
 makeListVarStrictType :: Foldable t => t a -> [String -> Name]
