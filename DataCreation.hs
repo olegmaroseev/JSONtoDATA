@@ -28,6 +28,8 @@ arrJs = fromJust $ decode $ "{\"fg\" : \"qwerty\"}" ::Value
 
 compJSON = fromJust $ decode $ "{\"name\":\"Joe\",\"age\":{\"foo\": {\"r\" : 12}}}" :: Value
 
+greatEx = fromJust $ decode $ "{\"glossary\": {\"title\": \"example glossary\",\"glossDiv\": { \"tit\": \"S\", \"glossList\": { \"glossEntry\": { \"id\": \"SGML\", \"sortAs\": \"SGML\", \"glossTerm\": \"Standard Generalized Markup Language\", \"acronym\": \"SGML\", \"abbrev\": \"ISO 8879:1986\", \"glossDef\": { \"para\": \"A meta-markup language, used to create markup languages such as DocBook.\", \"glossSeeAlso\": [\"GML\", \"XML\"] }, \"glossSee\": \"markup\"} } }}}" :: Value
+
 --получение Hashmap из объекта
 toHashMap :: Value -> Object
 toHashMap (Object obj) = obj
@@ -127,4 +129,4 @@ convertObject name' json' = do
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
-          (snd (runState (convertObject "JSONData" extraSimple) $ []) )
+          (snd (runState (convertObject "JSONData" greatEx) $ []) )
