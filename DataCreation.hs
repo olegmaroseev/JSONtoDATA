@@ -11,6 +11,7 @@ import qualified Data.HashMap.Strict as StrHash
 import Data.Text
 import Data.Char
 import Data.Generics
+import qualified Data.Vector      as V
 import Language.Haskell.TH.Syntax
 import Data.Vector
 import Control.Monad.State        as MState
@@ -30,14 +31,23 @@ compJSON = fromJust $ decode $ "{\"name\":\"Joe\",\"age\":{\"foo\": {\"r\" : 12}
 
 greatEx = fromJust $ decode $ "{\"glossary\": {\"title\": \"example glossary\",\"glossDiv\": { \"tit\": \"S\", \"glossList\": { \"glossEntry\": { \"id\": \"SGML\", \"sortAs\": \"SGML\", \"glossTerm\": \"Standard Generalized Markup Language\", \"acronym\": \"SGML\", \"abbrev\": \"ISO 8879:1986\", \"glossDef\": { \"para\": \"A meta-markup language, used to create markup languages such as DocBook.\", \"glossSeeAlso\": [\"GML\", \"XML\"] }, \"glossSee\": \"markup\"} } }}}" :: Value
 
+arrObjects = fromJust $ decode $ "{\"students\" :[{\"name\": \"Oleg\", \"age\" : 21} , {\"name\": \"Igor\", \"age\" : 17}, {\"name\": \"Semen\", \"age\" : 20}]}" :: Value
+
 --получение Hashmap из объекта
 toHashMap :: Value -> Object
 toHashMap (Object obj) = obj
+
+toVector' (Array arr) = arr
 
 --проверка на то, что Value является Object
 isObject :: Value -> Bool
 isObject (Object obj) = True;
 isObject _ = False;
+
+--проверка на то, что Value является Array
+isArray :: Value -> Bool
+isArray (Array obj) = True;
+isArray _ = False;
 
 --проверка на сложность JSON
 isComp:: Value -> Bool
@@ -109,6 +119,19 @@ convertFields map' = foldlWithKeyM upd [] (mapKeys' $ toHashMap map')
                           [mkName "Generic", mkName "Show", mkName "Eq"] ])
                   (MState.return  (((mkName $  key'), NotStrict,
                                              (   mkValType val' key')) : list'))
+
+	| (isArray val') && (isObject $ V.head $ toVector' val') =
+		do
+		  result <- convertFields $ V.head $ toVector' val'
+		  MState.modify ((DList.++) [DataD
+                          []
+                          (mkName $ firstLetterToUpper key')
+                          []
+                          [ RecC (mkName $ firstLetterToUpper key')  (result) ]
+                          [mkName "Generic", mkName "Show", mkName "Eq"] ])
+                  (MState.return  (((mkName $  key'), NotStrict,
+                                             (   mkValType val' key')) : list')) 
+                  
         | otherwise =
                 do
                   (MState.return (((mkName $  key'), NotStrict,
@@ -129,4 +152,4 @@ convertObject name' json' = do
 getDataFromJSON::DecsQ
 getDataFromJSON = do
   return $
-          (snd (runState (convertObject "JSONData" greatEx) $ []) )
+          (snd (runState (convertObject "JSONData" arrObjects) $ []) )
